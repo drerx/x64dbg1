@@ -203,8 +203,15 @@ private:
             return std::tie(memBase, memSize, rva, size) == std::tie(o.memBase, o.memSize, o.rva, o.size);
         }
     } mUpdateCache;
+    // NOTE: these are always equal in size
     std::vector<uint8_t> mUpdateCacheData;
     std::vector<uint8_t> mUpdateCacheTemp;
+    std::vector<duint> mChangedBytes;
+
+    bool isByteChanged(duint rva) const
+    {
+        return std::find(mChangedBytes.begin(), mChangedBytes.end(), rva) != mChangedBytes.end();
+    }
 
 protected:
     Architecture* mArchitecture = nullptr;

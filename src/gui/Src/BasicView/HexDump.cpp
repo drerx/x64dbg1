@@ -108,6 +108,8 @@ void HexDump::updateShortcuts()
     mCopySelection->setShortcut(ConfigShortcut("ActionCopy"));
 }
 
+#include <QDebug>
+
 void HexDump::updateDumpSlot()
 {
     if(mSyncAddrExpression.length() && DbgFunctions()->ValFromString)
@@ -132,18 +134,44 @@ void HexDump::updateDumpSlot()
             {
                 if(mUpdateCache == cur && memcmp(mUpdateCacheData.data(), mUpdateCacheTemp.data(), cur.size) == 0)
                 {
-                    // same view and same data, do not reload
-                    return;
+                    if(mChangedBytes.empty())
+                    {
+                        // same view and same data, do not reload
+                        return;
+                    }
+                    mChangedBytes.clear();
                 }
                 else
                 {
+                    mChangedBytes.clear();
+
+                    if(mUpdateCache.rva == cur.rva && mUpdateCache.memBase == cur.memBase)
+                    {
+                        for(size_t i = 0; i < mUpdateCacheData.size(); i++)
+                        {
+                            if(mUpdateCacheData[i] != mUpdateCacheTemp[i])
+                            {
+                                mChangedBytes.push_back(cur.rva + i);
+                            }
+                        }
+                    }
+
                     mUpdateCache = cur;
                     mUpdateCacheData.swap(mUpdateCacheTemp);
 #ifdef DEBUG
                     OutputDebugStringA(QString("[x64dbg] %1[%2] %3[%4]").arg(ToPtrString(mUpdateCache.memBase)).arg(ToHexString(mUpdateCache.memSize)).arg(ToPtrString(mUpdateCache.rva)).arg(ToHexString(mUpdateCache.size)).toUtf8().constData());
 #endif // DEBUG
+
+                    /*for(auto rva : mChangedBytes)
+                    {
+                        qDebug() << "   " << ToPtrString(mMemPage->getBase() + rva);
+                    }*/
                 }
             }
+        }
+        else
+        {
+            // TODO: resize the buffer
         }
     }
     reloadData();
@@ -831,6 +859,7 @@ void HexDump::getColumnRichText(duint col, duint rva, RichTextPainter::List & ri
         }
         else
         {
+            bool lastChanged = false;
             for(int i = 0; i < desc.itemCount && (rva + i) < mMemPage->getSize(); i++)
             {
                 curData.text.clear();
@@ -838,18 +867,26 @@ void HexDump::getColumnRichText(duint col, duint rva, RichTextPainter::List & ri
                 curData.textBackground = Qt::transparent;
                 curData.flags = RichTextPainter::FlagAll;
 
+                auto delta = i * byteCount;
+
                 int maxLen = getStringMaxLength(desc.data);
                 if((rva + i + byteCount - 1) < mMemPage->getSize())
                 {
-                    toString(desc.data, rva + i * byteCount, data + i * byteCount, curData);
+                    toString(desc.data, rva + delta, data + delta, curData);
                     if(curData.text.length() < maxLen)
                     {
                         spaceData.text = QString(' ').repeated(maxLen - curData.text.length());
                         richText.push_back(spaceData);
+                        if(lastChanged)
+                        {
+                            qDebug() << "SPACE TRIGGERED";
+                            richText.back().textBackground = Qt::red;
+                            richText.back().flags = RichTextPainter::FlagBackground;
+                        }
                     }
                     if(i % sizeof(duint) == 0 && byteCount == 1 && desc.data.byteMode == HexByte) //pointer underlining
                     {
-                        auto ptr = *(duint*)(data + i * byteCount);
+                        auto ptr = *(duint*)(data + delta);
                         if((spaceData.underline = curData.underline = DbgMemIsValidReadPtr(ptr)))
                         {
                             auto codePage = DbgFunctions()->MemIsCodePage(ptr, false);
@@ -865,6 +902,20 @@ void HexDump::getColumnRichText(duint col, duint rva, RichTextPainter::List & ri
                                 spaceData.underlineColor = curData.underlineColor = codePage ? mUnknownCodePointerHighlightColor : mUnknownDataPointerHighlightColor;
                         }
                     }
+
+                    // For daaxy <3
+                    if(isByteChanged(rva + delta))
+                    {
+                        qDebug() << "changed";
+                        curData.textBackground = Qt::red;
+                        curData.textColor = Qt::white;
+                        lastChanged = true;
+                    }
+                    else
+                    {
+                        lastChanged = false;
+                    }
+
                     richText.push_back(curData);
                     if(maxLen)
                     {
@@ -872,6 +923,11 @@ void HexDump::getColumnRichText(duint col, duint rva, RichTextPainter::List & ri
                         if(i % sizeof(duint) == sizeof(duint) - 1)
                             spaceData.underline = false;
                         richText.push_back(spaceData);
+                        /*if(lastChanged)
+                        {
+                            richText.back().textBackground = Qt::red;
+                            richText.back().flags = RichTextPainter::FlagBackground;
+                        }*/
                     }
                 }
                 else

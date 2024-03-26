@@ -265,6 +265,7 @@ typedef duint(*GETADDRFROMLINEEX)(duint mod, const char* szSourceFile, int line)
 typedef MODULESYMBOLSTATUS(*MODSYMBOLSTATUS)(duint mod);
 typedef void(*GETCALLSTACKBYTHREAD)(HANDLE thread, DBGCALLSTACK* callstack);
 
+
 //The list of all the DbgFunctions() return value.
 //WARNING: This list is append only. Do not insert things in the middle or plugins would break.
 typedef struct DBGFUNCTIONS_
@@ -354,6 +355,7 @@ typedef struct DBGFUNCTIONS_
     bool (*BpSetFieldNumber)(const BP_REF* ref, BP_FIELD field, duint value);
     bool (*BpGetFieldText)(const BP_REF* ref, BP_FIELD field, CBSTRING callback, void* userdata);
     bool (*BpSetFieldText)(const BP_REF* ref, BP_FIELD field, const char* value);
+    void (*EnumStructs)(CBSTRING callback, void* userdata);
 } DBGFUNCTIONS;
 
 #ifdef __cplusplus

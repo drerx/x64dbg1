@@ -81,6 +81,7 @@ void EditBreakpointDialog::on_buttonLogFile_clicked()
         mLogFile.isEmpty() ? getDbPath(mainModuleName() + ".log", false) : mLogFile,
         true
     );
+    // TODO: do not pop up overwrite warning
     if(browse.exec() == QDialog::Accepted)
         mLogFile = browse.path;
     else

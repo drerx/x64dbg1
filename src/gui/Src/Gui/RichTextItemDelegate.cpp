@@ -4,6 +4,7 @@
 #include <QPainter>
 #include <QAbstractTextDocumentLayout>
 #include <QApplication>
+#include <QDebug>
 
 RichTextItemDelegate::RichTextItemDelegate(QColor* textColor, QObject* parent)
     : QStyledItemDelegate(parent),
@@ -52,7 +53,7 @@ void RichTextItemDelegate::paint(QPainter* painter, const QStyleOptionViewItem &
 #else
         int postfixWidth = metric.width(elidedPostfix);
 #endif
-        while(doc.size().width() > option.rect.width() - postfixWidth)
+        while(!doc.isEmpty() && doc.size().width() > option.rect.width() - postfixWidth)
         {
             cursor.deletePreviousChar();
             doc.adjustSize();
