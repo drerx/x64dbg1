@@ -6,14 +6,13 @@
 
 class TraceFileReader;
 class BreakpointMenu;
-class MRUList;
 class CommonActions;
 
 class TraceBrowser : public AbstractTableView
 {
     Q_OBJECT
 public:
-    explicit TraceBrowser(QWidget* parent = nullptr);
+    explicit TraceBrowser(TraceFileReader* traceFile, QWidget* parent = nullptr);
     ~TraceBrowser() override;
 
     QString paintContent(QPainter* painter, duint row, duint col, int x, int y, int w, int h) override;
@@ -83,14 +82,12 @@ private:
 
     TraceFileReader* mTraceFile;
     BreakpointMenu* mBreakpointMenu;
-    MRUList* mMRUList;
     QString mFileName;
 
     QColor mBytesColor;
     QColor mBytesBackgroundColor;
 
     QColor mInstructionHighlightColor;
-    QColor mSelectionColor;
 
     QColor mCipBackgroundColor;
     QColor mCipColor;
@@ -147,13 +144,15 @@ private:
     int paintFunctionGraphic(QPainter* painter, int x, int y, Function_t funcType, bool loop);
 
 signals:
-    void displayReferencesWidget();
     void displayLogWidget();
     void selectionChanged(unsigned long long selection);
+    void xrefSignal(duint addr);
+    void closeFile();
 
 public slots:
     void openFileSlot();
     void openSlot(const QString & fileName);
+    void browseInExplorerSlot();
     void toggleTraceRecordingSlot();
     void closeFileSlot();
     void closeDeleteSlot();
@@ -165,6 +164,7 @@ public slots:
     void rtrSlot();
     void gotoPreviousSlot();
     void gotoNextSlot();
+    void gotoXrefSlot();
     void enableHighlightingModeSlot();
     void mnemonicBriefSlot();
     void mnemonicHelpSlot();
@@ -187,6 +187,7 @@ public slots:
     void synchronizeCpuSlot();
     void gotoIndexSlot(duint index);
 
-protected:
+private:
     void disasm(unsigned long long index, bool history = true);
 };
+
